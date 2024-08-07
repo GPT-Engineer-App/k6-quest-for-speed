@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
-import { Cat, Heart, Info, Paw, Star, Sparkles, ArrowRight } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState, useEffect, useRef } from "react";
+import { Cat, Heart, Info, Paw, Star, Sparkles, ArrowRight, Music, Volume2, VolumeX } from "lucide-react";
+import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/components/ui/use-toast";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 const catBreeds = [
   { name: "Siamese", origin: "Thailand", temperament: "Vocal, Affectionate, Intelligent", image: "https://upload.wikimedia.org/wikipedia/commons/2/25/Siam_lilacpoint.jpg" },
@@ -29,7 +31,13 @@ const Index = () => {
   const [likes, setLikes] = useState(0);
   const [currentFactIndex, setCurrentFactIndex] = useState(0);
   const [likeProgress, setLikeProgress] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
   const { toast } = useToast();
+  const audioRef = useRef(null);
+
+  const { scrollYProgress } = useScroll();
+  const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
+  const scale = useTransform(scrollYProgress, [0, 0.5], [1, 0.8]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -53,28 +61,63 @@ const Index = () => {
     }
   };
 
+  const toggleAudio = () => {
+    if (isPlaying) {
+      audioRef.current.pause();
+    } else {
+      audioRef.current.play();
+    }
+    setIsPlaying(!isPlaying);
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-purple-100 to-pink-100 p-8">
+    <div className="min-h-screen bg-gradient-to-b from-purple-100 to-pink-100 p-8 overflow-x-hidden">
       <div className="max-w-6xl mx-auto">
-        <motion.h1 
-          className="text-6xl font-bold mb-8 flex items-center justify-center text-purple-800"
-          initial={{ opacity: 0, y: -50 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
+        <audio ref={audioRef} loop>
+          <source src="https://example.com/cat-purring.mp3" type="audio/mpeg" />
+          Your browser does not support the audio element.
+        </audio>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="icon"
+                className="fixed top-4 right-4 z-50"
+                onClick={toggleAudio}
+              >
+                {isPlaying ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{isPlaying ? "Mute" : "Play"} cat purring</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        <motion.div
+          style={{ opacity, scale }}
+          className="sticky top-0 z-10 bg-gradient-to-b from-purple-100 to-transparent py-8"
         >
-          <Cat className="mr-4 text-pink-500" size={64} /> 
-          <span className="relative">
-            Feline Fascination
-            <motion.span
-              className="absolute -top-6 -right-6 text-yellow-400"
-              initial={{ rotate: 0 }}
-              animate={{ rotate: 360 }}
-              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-            >
-              <Sparkles size={24} />
-            </motion.span>
-          </span>
-        </motion.h1>
+          <motion.h1 
+            className="text-6xl font-bold mb-8 flex items-center justify-center text-purple-800"
+            initial={{ opacity: 0, y: -50 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <Cat className="mr-4 text-pink-500" size={64} /> 
+            <span className="relative">
+              Feline Fascination
+              <motion.span
+                className="absolute -top-6 -right-6 text-yellow-400"
+                initial={{ rotate: 0 }}
+                animate={{ rotate: 360 }}
+                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+              >
+                <Sparkles size={24} />
+              </motion.span>
+            </span>
+          </motion.h1>
+        </motion.div>
 
         <motion.div 
           className="mb-12"
@@ -98,6 +141,29 @@ const Index = () => {
                           <div className="text-white text-center">
                             <h3 className="text-2xl font-bold mb-2">{breed.name}</h3>
                             <p className="text-sm">{breed.temperament}</p>
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button variant="secondary" size="sm" className="mt-4">
+                                  Learn More
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="sm:max-w-[425px]">
+                                <DialogHeader>
+                                  <DialogTitle>{breed.name}</DialogTitle>
+                                  <DialogDescription>
+                                    Discover more about this fascinating breed.
+                                  </DialogDescription>
+                                </DialogHeader>
+                                <div className="grid gap-4 py-4">
+                                  <img src={breed.image} alt={breed.name} className="w-full h-64 object-cover rounded-lg" />
+                                  <p><strong>Origin:</strong> {breed.origin}</p>
+                                  <p><strong>Temperament:</strong> {breed.temperament}</p>
+                                  <p>
+                                    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+                                  </p>
+                                </div>
+                              </DialogContent>
+                            </Dialog>
                           </div>
                         </div>
                       </CardContent>
@@ -240,12 +306,33 @@ const Index = () => {
           <div className="flex flex-col items-center">
             <Button 
               onClick={handleLike}
-              className="bg-pink-500 hover:bg-pink-600 text-white font-bold py-3 px-6 rounded-full text-lg transition-all duration-300 transform hover:scale-105 mb-4"
+              className="bg-pink-500 hover:bg-pink-600 text-white font-bold py-3 px-6 rounded-full text-lg transition-all duration-300 transform hover:scale-105 mb-4 relative overflow-hidden group"
             >
-              <Heart className="mr-2" /> Show Some Love ({likes})
+              <span className="relative z-10 flex items-center">
+                <Heart className="mr-2" /> Show Some Love ({likes})
+              </span>
+              <span className="absolute w-0 h-0 transition-all duration-300 ease-out bg-white rounded-full group-hover:w-56 group-hover:h-56 opacity-10"></span>
             </Button>
             <Progress value={likeProgress} className="w-64 h-2 bg-pink-200" />
             <p className="mt-2 text-sm text-purple-600">Progress to 100 likes: {likeProgress}%</p>
+          </div>
+        </motion.div>
+
+        <motion.div
+          className="mt-16 p-8 bg-white rounded-lg shadow-lg"
+          initial={{ opacity: 0, y: 50 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+        >
+          <h2 className="text-3xl font-bold text-purple-800 mb-6">Cat Music Player</h2>
+          <p className="text-lg text-gray-700 mb-4">
+            Did you know that cats respond to certain types of music? Play some cat-friendly tunes and watch your feline friend relax!
+          </p>
+          <div className="flex justify-center items-center space-x-4">
+            <Button onClick={toggleAudio} className="bg-purple-500 hover:bg-purple-600 text-white">
+              {isPlaying ? <VolumeX className="mr-2" /> : <Music className="mr-2" />}
+              {isPlaying ? "Pause" : "Play"} Cat Music
+            </Button>
           </div>
         </motion.div>
 
