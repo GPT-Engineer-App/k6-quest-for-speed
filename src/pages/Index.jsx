@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from "react";
-import { Cat, Heart, Info, Paw, Star, Sparkles, ArrowRight, Music, Volume2, VolumeX } from "lucide-react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { Cat, Heart, Info, Paw, Star, Sparkles, ArrowRight, Music, Volume2, VolumeX, Camera } from "lucide-react";
 import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -10,6 +10,9 @@ import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/components/ui/use-toast";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
 
 const catBreeds = [
   { name: "Siamese", origin: "Thailand", temperament: "Vocal, Affectionate, Intelligent", image: "https://upload.wikimedia.org/wikipedia/commons/2/25/Siam_lilacpoint.jpg" },
@@ -27,13 +30,26 @@ const catFacts = [
   "Cats can jump up to six times their length.",
 ];
 
+const catPopulationData = [
+  { year: 2015, population: 85.8 },
+  { year: 2016, population: 89.7 },
+  { year: 2017, population: 95.6 },
+  { year: 2018, population: 102.3 },
+  { year: 2019, population: 108.9 },
+  { year: 2020, population: 114.7 },
+  { year: 2021, population: 120.1 },
+];
+
 const Index = () => {
   const [likes, setLikes] = useState(0);
   const [currentFactIndex, setCurrentFactIndex] = useState(0);
   const [likeProgress, setLikeProgress] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [catName, setCatName] = useState("");
+  const [catPhoto, setCatPhoto] = useState(null);
   const { toast } = useToast();
   const audioRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   const { scrollYProgress } = useScroll();
   const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
@@ -70,6 +86,41 @@ const Index = () => {
     setIsPlaying(!isPlaying);
   };
 
+  const handleFileChange = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCatPhoto(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const triggerFileInput = () => {
+    fileInputRef.current.click();
+  };
+
+  const handleNameChange = (event) => {
+    setCatName(event.target.value);
+  };
+
+  const handleSubmit = useCallback(() => {
+    if (catName && catPhoto) {
+      toast({
+        title: "Cat Profile Created!",
+        description: `Welcome, ${catName}! Your feline friend has been added to our community.`,
+        duration: 5000,
+      });
+    } else {
+      toast({
+        title: "Incomplete Profile",
+        description: "Please provide both a name and a photo for your cat.",
+        duration: 5000,
+      });
+    }
+  }, [catName, catPhoto, toast]);
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-100 to-pink-100 p-8 overflow-x-hidden">
       <div className="max-w-6xl mx-auto">
@@ -94,6 +145,47 @@ const Index = () => {
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
+
+        <motion.div
+          className="mb-12 p-6 bg-white rounded-lg shadow-lg"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+        >
+          <h2 className="text-2xl font-bold text-purple-800 mb-4">Add Your Cat</h2>
+          <div className="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-4">
+            <div className="flex-1 w-full">
+              <Label htmlFor="catName" className="text-sm font-medium text-gray-700">Cat's Name</Label>
+              <Input
+                id="catName"
+                placeholder="Enter your cat's name"
+                value={catName}
+                onChange={handleNameChange}
+                className="mt-1"
+              />
+            </div>
+            <div className="flex-1 w-full">
+              <Label htmlFor="catPhoto" className="text-sm font-medium text-gray-700">Cat's Photo</Label>
+              <input
+                type="file"
+                id="catPhoto"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                className="hidden"
+                accept="image/*"
+              />
+              <div className="mt-1 flex items-center space-x-2">
+                <Button onClick={triggerFileInput} variant="outline">
+                  <Camera className="mr-2 h-4 w-4" /> Upload Photo
+                </Button>
+                {catPhoto && <span className="text-sm text-green-600">Photo uploaded!</span>}
+              </div>
+            </div>
+            <Button onClick={handleSubmit} className="bg-purple-600 hover:bg-purple-700 text-white">
+              Add Cat
+            </Button>
+          </div>
+        </motion.div>
         <motion.div
           style={{ opacity, scale }}
           className="sticky top-0 z-10 bg-gradient-to-b from-purple-100 to-transparent py-8"
@@ -323,6 +415,31 @@ const Index = () => {
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.4 }}
+        >
+          <h2 className="text-3xl font-bold text-purple-800 mb-6">Cat Population Trends</h2>
+          <p className="text-lg text-gray-700 mb-4">
+            Explore the growing popularity of cats as pets over recent years.
+          </p>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={catPopulationData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="year" />
+              <YAxis />
+              <RechartsTooltip />
+              <Legend />
+              <Line type="monotone" dataKey="population" stroke="#8884d8" activeDot={{ r: 8 }} />
+            </LineChart>
+          </ResponsiveContainer>
+          <p className="text-sm text-gray-600 mt-4">
+            Data shows the estimated number of pet cats in millions.
+          </p>
+        </motion.div>
+
+        <motion.div
+          className="mt-16 p-8 bg-white rounded-lg shadow-lg"
+          initial={{ opacity: 0, y: 50 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.6 }}
         >
           <h2 className="text-3xl font-bold text-purple-800 mb-6">Cat Music Player</h2>
           <p className="text-lg text-gray-700 mb-4">
